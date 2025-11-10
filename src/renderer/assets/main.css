@@ -1,0 +1,178 @@
+@import './base.css';
+
+body {
+  background: #f4f5f9;
+  color: #1f2933;
+}
+
+.dashboard .navbar {
+  background: linear-gradient(130deg, #304ffe, #536dfe);
+}
+
+.dashboard .user-avatar {
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.dashboard main {
+  background: transparent;
+}
+
+.dashboard-tabs {
+  gap: 0.5rem;
+}
+
+.dashboard-tabs .nav-link {
+  border-radius: 999px;
+  padding: 0.55rem 1.35rem;
+  background: transparent;
+  color: #425466;
+  font-weight: 600;
+}
+
+.dashboard-tabs .nav-link:hover {
+  background: rgba(83, 109, 254, 0.08);
+  color: #304ffe;
+}
+
+.dashboard-tabs .nav-link.active {
+  background: #ffffff;
+  color: #304ffe;
+  border: 1px solid rgba(83, 109, 254, 0.3);
+  box-shadow: 0 4px 12px rgba(83, 109, 254, 0.12);
+}
+
+.tab-pane .card + .card {
+  margin-top: 1.5rem;
+}
+
+.dashboard-actions .form-control {
+  min-width: 340px;
+}
+
+.dashboard .card {
+  border: none;
+  border-radius: 16px;
+}
+
+.dashboard .card-header {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 1.25rem 1.5rem 0.75rem;
+}
+
+.dashboard .card-body {
+  padding: 1.5rem;
+}
+
+.dashboard .table {
+  margin-bottom: 0;
+}
+
+.dashboard .table thead {
+  background-color: rgba(83, 109, 254, 0.08);
+}
+
+.dashboard .table thead th {
+  border: 0;
+  color: #425466;
+  font-weight: 600;
+}
+
+.dashboard .table tbody tr td {
+  border-color: rgba(15, 23, 42, 0.05);
+  vertical-align: middle;
+}
+
+.dashboard .badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.table .text-truncate {
+  max-width: 260px;
+}
+
+.dashboard-footer {
+  background: rgba(15, 23, 42, 0.02);
+}
+
+.summary-card.card {
+  border-radius: 16px;
+  border: none;
+  padding: 1.25rem;
+}
+
+.summary-card .summary-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  color: #fff;
+}
+
+.summary-card[data-type='inventory'] .summary-icon {
+  background: linear-gradient(135deg, #1d976c, #2abf88);
+}
+
+.summary-card[data-type='profit'] .summary-icon {
+  background: linear-gradient(135deg, #f7971e, #ffd200);
+}
+
+.summary-card[data-type='cost'] .summary-icon {
+  background: linear-gradient(135deg, #536dfe, #7c4dff);
+}
+
+.summary-card[data-type='margin'] .summary-icon {
+  background: linear-gradient(135deg, #ff6a88, #ff8a65);
+}
+
+.summary-card h3 {
+  font-size: 1.75rem;
+  margin: 0.75rem 0 0.25rem;
+  font-weight: 700;
+}
+
+.summary-card p {
+  margin-bottom: 0;
+  color: rgba(15, 23, 42, 0.6);
+}
+
+@media (max-width: 768px) {
+  .dashboard-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .dashboard-actions .form-control {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .dashboard-actions .btn {
+    width: 100%;
+  }
+}
+
+.dashboard-actions .btn {
+  white-space: nowrap;
+}
+
+.action-buttons {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+.action-buttons .btn {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.78rem;
+}
