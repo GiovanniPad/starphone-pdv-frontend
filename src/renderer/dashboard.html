@@ -1,0 +1,177 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Starphone - Controle de Estoque</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    />
+    <link rel="stylesheet" href="./assets/main.css" />
+  </head>
+
+  <body>
+    <div id="app" class="dashboard d-flex flex-column min-vh-100">
+      <header class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container-fluid">
+          <span class="navbar-brand fw-semibold">Starphone - Controle de Estoque</span>
+          <ul class="navbar-nav ms-auto align-items-center gap-3">
+            <li class="nav-item text-white-50 small d-none d-md-block">
+              <span id="lastSyncLabel">Última sincronização: agora mesmo</span>
+            </li>
+            <li class="nav-item">
+              <button class="btn btn-outline-light btn-sm" id="refreshDashboard" type="button">
+                Atualizar
+              </button>
+            </li>
+            <li class="nav-item">
+              <span class="user-avatar rounded-circle d-inline-flex">SP</span>
+            </li>
+          </ul>
+        </div>
+      </header>
+
+      <main class="flex-grow-1">
+        <section class="container py-4">
+          <ul class="nav nav-pills dashboard-tabs" id="dashboardTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link active"
+                id="products-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#productsPanel"
+                type="button"
+                role="tab"
+                aria-controls="productsPanel"
+                aria-selected="true"
+              >
+                Produtos
+              </button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button
+                class="nav-link"
+                id="employees-tab"
+                data-bs-toggle="tab"
+                data-bs-target="#employeesPanel"
+                type="button"
+                role="tab"
+                aria-controls="employeesPanel"
+                aria-selected="false"
+              >
+                Funcionários
+              </button>
+            </li>
+          </ul>
+
+          <div class="tab-content pt-4" id="dashboardTabsContent">
+            <div
+              class="tab-pane fade show active"
+              id="productsPanel"
+              role="tabpanel"
+              aria-labelledby="products-tab"
+              tabindex="0"
+            >
+              <div class="row g-3 mb-4" id="summaryCards"></div>
+
+              <div class="card shadow-sm">
+                <div class="card-header bg-transparent border-0 pb-0">
+                  <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
+                    <div>
+                      <h2 class="h4 mb-1">Controle de estoque</h2>
+                      <p class="text-muted mb-0">Produtos cadastrados e rentabilidade estimada</p>
+                    </div>
+                    <div class="dashboard-actions d-flex gap-2">
+                      <input
+                        type="search"
+                        id="searchProduct"
+                        class="form-control"
+                        placeholder="Buscar produto por nome ou categoria"
+                        aria-label="Buscar produto"
+                      />
+                      <button type="button" class="btn btn-primary" id="addProductBtn">Novo produto</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th scope="col">Nome</th>
+                          <th scope="col" class="text-nowrap">Categoria</th>
+                          <th scope="col" class="text-end text-nowrap">Quantidade</th>
+                          <th scope="col" class="text-end text-nowrap">Valor venda</th>
+                          <th scope="col" class="text-end text-nowrap">Valor custo</th>
+                          <th scope="col" class="text-end text-nowrap">Lucro</th>
+                          <th scope="col" class="text-end text-nowrap">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody id="productTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="tab-pane fade"
+              id="employeesPanel"
+              role="tabpanel"
+              aria-labelledby="employees-tab"
+              tabindex="0"
+            >
+              <div class="card shadow-sm">
+                <div class="card-header bg-transparent border-0 pb-0">
+                  <div class="d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
+                    <div>
+                      <h2 class="h4 mb-1">Equipe da loja</h2>
+                      <p class="text-muted mb-0">Funcionários com acesso ao sistema</p>
+                    </div>
+                    <div class="dashboard-actions d-flex gap-2">
+                      <input
+                        type="search"
+                        id="searchEmployee"
+                        class="form-control"
+                        placeholder="Buscar funcionário por nome ou e-mail"
+                        aria-label="Buscar funcionário"
+                      />
+                      <button type="button" class="btn btn-primary" id="addEmployeeBtn">Novo funcionário</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="card-body">
+                  <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th scope="col">Nome completo</th>
+                          <th scope="col">E-mail</th>
+                          <th scope="col" class="text-end text-nowrap">Salário</th>
+                          <th scope="col" class="text-nowrap">Contratação</th>
+                          <th scope="col" class="text-nowrap">Demissão</th>
+                          <th scope="col" class="text-center text-nowrap">Administrador</th>
+                          <th scope="col" class="text-end text-nowrap">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody id="employeeTableBody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="dashboard-footer py-3 text-center text-muted small">
+        <span>&copy; <span id="currentYear"></span> Starphone • PDV Desktop</span>
+      </footer>
+    </div>
+
+    <script type="module" src="./src/dev-toolbar.js"></script>
+    <script type="module" src="./src/renderer.js"></script>
+  </body>
+</html>
