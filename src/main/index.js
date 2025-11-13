@@ -3,8 +3,13 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
+// URL base da API FastAPI
+const API_BASE_URL = 'http://localhost:8000'
+
 function createWindow() {
   // Create the browser window.
+  const preloadPath = join(__dirname, '../preload/index.js')
+  
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
@@ -12,8 +17,10 @@ function createWindow() {
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      preload: preloadPath,
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false
     }
   })
 
@@ -51,6 +58,113 @@ app.whenReady().then(() => {
 
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
+
+  // API handlers - FastAPI
+  ipcMain.handle('api:getUsers', async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users`)
+      
+      if (!response.ok) {
+        throw new Error(`Erro ${response.status}`)
+      }
+
+      const data = await response.json()
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error fetching users:', error.message)
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('api:updateUser', async (_, email, userData) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${encodeURIComponent(email)}/`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: `Erro ${response.status}` }))
+        throw new Error(errorData.detail || `Erro ${response.status}`)
+      }
+
+      const data = await response.json()
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error updating user:', error.message)
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('api:createUser', async (_, userData) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: `Erro ${response.status}` }))
+        throw new Error(errorData.detail || `Erro ${response.status}`)
+      }
+
+      const data = await response.json()
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error creating user:', error.message)
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('api:deactivateUser', async (_, email) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${encodeURIComponent(email)}/deactivate/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: `Erro ${response.status}` }))
+        throw new Error(errorData.detail || `Erro ${response.status}`)
+      }
+
+      const data = await response.json()
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error deactivating user:', error.message)
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('api:reactivateUser', async (_, email) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${encodeURIComponent(email)}/reactivate/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: `Erro ${response.status}` }))
+        throw new Error(errorData.detail || `Erro ${response.status}`)
+      }
+
+      const data = await response.json()
+      return { success: true, data }
+    } catch (error) {
+      console.error('Error reactivating user:', error.message)
+      return { success: false, error: error.message }
+    }
+  })
 
   createWindow()
 

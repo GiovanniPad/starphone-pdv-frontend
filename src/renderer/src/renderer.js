@@ -1,6 +1,7 @@
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import Toast from 'bootstrap/js/dist/toast'
+import Modal from 'bootstrap/js/dist/modal'
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -76,52 +77,90 @@ const mockProducts = [
 ]
 
 let filteredProducts = [...mockProducts]
-const mockEmployees = [
-  {
-    id: 1,
-    fullName: 'Giovana Costa',
-    email: 'giovana.costa@starphone.com.br',
-    salary: 4800,
-    hireDate: '2021-03-15',
-    terminationDate: null,
-    isAdmin: true
-  },
-  {
-    id: 2,
-    fullName: 'Lucas Almeida',
-    email: 'lucas.almeida@starphone.com.br',
-    salary: 4200,
-    hireDate: '2022-02-10',
-    terminationDate: null,
-    isAdmin: false
-  },
-  {
-    id: 3,
-    fullName: 'Mariana Ribeiro',
-    email: 'mariana.ribeiro@starphone.com.br',
-    salary: 3950,
-    hireDate: '2019-08-01',
-    terminationDate: '2024-10-18',
-    isAdmin: false
-  },
-  {
-    id: 4,
-    fullName: 'Carlos Menezes',
-    email: 'carlos.menezes@starphone.com.br',
-    salary: 3650,
-    hireDate: '2020-06-22',
-    terminationDate: null,
-    isAdmin: false
-  }
-]
-let filteredEmployees = [...mockEmployees]
+let employees = []
+let filteredEmployees = []
 
-function initDashboard() {
+// Função para ordenar funcionários alfabeticamente por nome
+function sortEmployeesAlphabetically(employeesList) {
+  return [...employeesList].sort((a, b) => {
+    const nameA = (a.fullname || '').toLowerCase().trim()
+    const nameB = (b.fullname || '').toLowerCase().trim()
+    return nameA.localeCompare(nameB, 'pt-BR')
+  })
+}
+
+// Função para filtrar funcionários por busca
+function filterEmployeesBySearch(employeesList, searchValue) {
+  if (!searchValue || searchValue.trim() === '') {
+    return [...employeesList]
+  }
+  
+  const value = searchValue.toLowerCase()
+  return sortEmployeesAlphabetically(employeesList.filter((employee) => {
+    const fullName = employee.fullname || ''
+    const email = employee.email || ''
+    return (
+      fullName.toLowerCase().includes(value) ||
+      email.toLowerCase().includes(value)
+    )
+  }))
+}
+
+async function initDashboard() {
+  // Aguardar um pouco para garantir que o preload terminou de carregar
+  await new Promise(resolve => setTimeout(resolve, 200))
+  
   renderSummary()
   renderProductTable()
-  renderEmployeeTable()
+  await loadEmployees()
   bindEvents()
   updateFooterYear()
+}
+
+async function loadEmployees() {
+  // Salvar o valor atual do campo de busca antes de recarregar
+  const employeeSearchInput = document.getElementById('searchEmployee')
+  const searchValue = employeeSearchInput?.value || ''
+  
+  const tableBody = document.getElementById('employeeTableBody')
+  if (tableBody) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="8" class="text-center text-muted py-4">
+          <div class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></div>
+          Carregando funcionários...
+        </td>
+      </tr>
+    `
+  }
+
+  try {
+    if (!window.api?.getUsers) {
+      throw new Error('API não disponível')
+    }
+
+    const result = await window.api.getUsers()
+    
+    if (result?.success && result.data) {
+      employees = sortEmployeesAlphabetically(Array.isArray(result.data) ? result.data : [])
+      
+      // Reaplicar o filtro de busca se houver um valor
+      if (searchValue.trim() !== '') {
+        filteredEmployees = filterEmployeesBySearch(employees, searchValue)
+      } else {
+        filteredEmployees = [...employees]
+      }
+      
+      renderEmployeeTable()
+    } else {
+      throw new Error(result?.error || 'Erro ao carregar funcionários')
+    }
+  } catch (error) {
+    showToast(`Erro: ${error.message || 'Erro ao carregar funcionários'}`)
+    employees = []
+    filteredEmployees = []
+    renderEmployeeTable()
+  }
 }
 
 function renderSummary() {
@@ -270,7 +309,7 @@ function renderEmployeeTable() {
   if (filteredEmployees.length === 0) {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="7" class="text-center text-muted py-4">
+        <td colspan="8" class="text-center text-muted py-4">
           Nenhum funcionário encontrado com os filtros atuais.
         </td>
       </tr>
@@ -280,24 +319,34 @@ function renderEmployeeTable() {
 
   tableBody.innerHTML = filteredEmployees
     .map((employee) => {
-      const hireDate = formatDate(employee.hireDate)
-      const terminationDate = formatDate(employee.terminationDate)
-      const adminBadgeClass = employee.isAdmin ? 'bg-success-subtle text-success-emphasis' : 'bg-light text-dark'
-      const adminLabel = employee.isAdmin ? 'Admin' : 'Usuário'
+      const fullName = employee.fullname || ''
+      const email = employee.email || ''
+      const salary = employee.salary || 0
+      const hireDate = formatDate(employee.hiring_date)
+      const terminationDate = formatDate(employee.resignation_date)
+      const isAdmin = employee.admin || false
+      const adminBadgeClass = isAdmin ? 'bg-success-subtle text-success-emphasis' : 'bg-light text-dark'
+      const adminLabel = isAdmin ? 'Admin' : 'Usuário'
+      const isActive = employee.active !== undefined ? employee.active : true
+      const activeBadgeClass = isActive ? 'bg-success-subtle text-success-emphasis' : 'bg-danger-subtle text-danger-emphasis'
+      const activeLabel = isActive ? 'Ativo' : 'Inativo'
       return `
         <tr data-employee-id="${employee.id}">
           <td>
-            <div class="fw-semibold">${employee.fullName}</div>
+            <div class="fw-semibold">${fullName}</div>
             <div class="text-muted small">ID #${employee.id}</div>
           </td>
           <td>
-            <a href="mailto:${employee.email}" class="text-decoration-none">${employee.email}</a>
+            <a href="mailto:${email}" class="text-decoration-none">${email}</a>
           </td>
-          <td class="text-end fw-semibold">${currencyFormatter.format(employee.salary)}</td>
+          <td class="text-end fw-semibold">${currencyFormatter.format(salary)}</td>
           <td>${hireDate}</td>
           <td>${terminationDate}</td>
           <td class="text-center">
             <span class="badge ${adminBadgeClass}">${adminLabel}</span>
+          </td>
+          <td class="text-center">
+            <span class="badge ${activeBadgeClass}">${activeLabel}</span>
           </td>
           <td class="text-end">
             <div class="action-buttons">
@@ -312,12 +361,12 @@ function renderEmployeeTable() {
               </button>
               <button
                 type="button"
-                class="btn btn-outline-danger btn-sm"
+                class="btn ${isActive ? 'btn-outline-danger' : 'btn-outline-success'} btn-sm"
                 data-action="delete"
                 data-entity="employee"
                 data-employee-id="${employee.id}"
               >
-                Excluir
+                ${isActive ? 'Inativar' : 'Reativar'}
               </button>
             </div>
           </td>
@@ -391,18 +440,13 @@ function bindEvents() {
   })
 
   employeeSearchInput?.addEventListener('input', (event) => {
-    const value = event.target.value.toLowerCase()
-    filteredEmployees = mockEmployees.filter((employee) => {
-      return (
-        employee.fullName.toLowerCase().includes(value) ||
-        employee.email.toLowerCase().includes(value)
-      )
-    })
+    const value = event.target.value
+    filteredEmployees = filterEmployeesBySearch(employees, value)
     renderEmployeeTable()
   })
 
   addEmployeeButton?.addEventListener('click', () => {
-    showToast('Funcionalidade de cadastro de funcionário em desenvolvimento.')
+    handleCreateEmployee()
   })
 
   employeeTable?.addEventListener('click', (event) => {
@@ -418,7 +462,7 @@ function bindEvents() {
 
     const action = actionButton.dataset.action
     const employeeId = Number(actionButton.dataset.employeeId)
-    const employee = mockEmployees.find((item) => item.id === employeeId)
+    const employee = employees.find((item) => item.id === employeeId)
     if (!employee) {
       showToast('Funcionário não encontrado.')
       return
@@ -428,6 +472,142 @@ function bindEvents() {
       handleEditEmployee(employee)
     } else if (action === 'delete') {
       handleDeleteEmployee(employee)
+    }
+  })
+
+  // Handler do formulário de funcionário (criação/edição)
+  const employeeForm = document.getElementById('employeeForm')
+  employeeForm?.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const form = event.target
+    if (!form.checkValidity()) {
+      form.classList.add('was-validated')
+      return
+    }
+
+    const formData = new FormData(form)
+    const mode = formData.get('mode') || 'edit'
+    const employeeId = Number(formData.get('id'))
+    const originalEmail = formData.get('originalEmail') || ''
+
+    // Preparar dados para envio à API
+    const salaryStr = formData.get('salary') || '0'
+    const salary = parseFloat(salaryStr)
+    const salaryInput = document.getElementById('employeeSalary')
+    
+    // Validar salário mínimo
+    if (isNaN(salary) || salary < 1) {
+      if (salaryInput) {
+        salaryInput.setCustomValidity('O salário deve ser no mínimo R$ 1,00.')
+        salaryInput.reportValidity()
+      }
+      form.classList.add('was-validated')
+      return
+    }
+    
+    // Limpar validação customizada do salário se passou
+    if (salaryInput) {
+      salaryInput.setCustomValidity('')
+    }
+    
+    const userData = {
+      fullname: formData.get('fullname') || '',
+      email: formData.get('email') || '',
+      salary: salary,
+      admin: formData.get('admin') === 'on'
+    }
+
+    // Na criação, sempre incluir active como true
+    if (mode === 'create') {
+      userData.active = true
+    }
+
+    // Validar e adicionar senha
+    const password = formData.get('password') || ''
+    const passwordInput = document.getElementById('employeePassword')
+    
+    if (mode === 'create') {
+      // Na criação, senha é obrigatória
+      if (password.trim() === '') {
+        if (passwordInput) {
+          passwordInput.setCustomValidity('A senha é obrigatória para criar um novo funcionário.')
+          passwordInput.reportValidity()
+        }
+        form.classList.add('was-validated')
+        return
+      }
+      if (password.trim().length < 6) {
+        if (passwordInput) {
+          passwordInput.setCustomValidity('A senha deve ter no mínimo 6 caracteres.')
+          passwordInput.reportValidity()
+        }
+        form.classList.add('was-validated')
+        return
+      }
+      userData.password = password
+    } else {
+      // Na edição, senha é opcional, mas se preenchida deve ter no mínimo 6 caracteres
+      if (password.trim() !== '') {
+        if (password.trim().length < 6) {
+          if (passwordInput) {
+            passwordInput.setCustomValidity('A senha deve ter no mínimo 6 caracteres.')
+            passwordInput.reportValidity()
+          }
+          form.classList.add('was-validated')
+          return
+        }
+        userData.password = password
+      }
+    }
+    
+    // Limpar validação customizada se passou nas validações
+    if (passwordInput) {
+      passwordInput.setCustomValidity('')
+    }
+
+    // Desabilitar botão de submit durante a requisição
+    const submitButton = form.querySelector('button[type="submit"]')
+    const originalButtonText = submitButton?.textContent || 'Salvar'
+    if (submitButton) {
+      submitButton.disabled = true
+      submitButton.textContent = mode === 'create' ? 'Criando...' : 'Salvando...'
+    }
+
+    try {
+      if (!window.api) {
+        throw new Error('API não disponível')
+      }
+
+      if (mode === 'edit' && !originalEmail) {
+        throw new Error('E-mail original não encontrado')
+      }
+
+      const result = mode === 'create'
+        ? await window.api.createUser(userData)
+        : await window.api.updateUser(originalEmail, userData)
+
+      if (!result?.success) {
+        throw new Error(result?.error || 'Erro desconhecido')
+      }
+
+      await loadEmployees()
+      
+      const modalElement = document.getElementById('employeeModal')
+      const modal = Modal.getInstance(modalElement)
+      modal?.hide()
+
+      showToast(mode === 'create' 
+        ? 'Funcionário criado com sucesso!' 
+        : 'Funcionário atualizado com sucesso!')
+    } catch (error) {
+      showToast(`Erro: ${error.message || 'Erro desconhecido'}`)
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false
+        submitButton.textContent = originalButtonText
+      }
     }
   })
 }
@@ -441,12 +621,137 @@ function handleDeleteProduct(product) {
   showToast(`Excluir produto: ${product.name}`)
 }
 
-function handleEditEmployee(employee) {
-  showToast(`Editar funcionário: ${employee.fullName}`)
+function openEmployeeModal(mode, employee = null) {
+  const modalElement = document.getElementById('employeeModal')
+  if (!modalElement) {
+    showToast('Erro: Modal de funcionário não encontrado.')
+    return
+  }
+
+  const modal = new Modal(modalElement)
+  const isEditMode = mode === 'edit'
+  
+  // Atualizar título do modal
+  const modalTitle = document.getElementById('employeeModalLabel')
+  const submitButton = document.getElementById('employeeSubmitButton')
+  const passwordInput = document.getElementById('employeePassword')
+  const passwordHelp = document.getElementById('employeePasswordHelp')
+  const hiringDateContainer = document.getElementById('employeeHiringDateContainer')
+  const resignationDateContainer = document.getElementById('employeeResignationDateContainer')
+  
+  if (modalTitle) {
+    modalTitle.textContent = isEditMode ? 'Editar Funcionário' : 'Novo Funcionário'
+  }
+  if (submitButton) {
+    submitButton.textContent = isEditMode ? 'Salvar alterações' : 'Criar funcionário'
+  }
+  if (passwordInput) {
+    passwordInput.placeholder = isEditMode 
+      ? 'Deixe em branco para não alterar' 
+      : 'Digite a senha do funcionário'
+    // Limpar validação customizada
+    passwordInput.setCustomValidity('')
+    // Remover required se estiver em modo de edição
+    if (isEditMode) {
+      passwordInput.removeAttribute('required')
+      passwordInput.removeAttribute('minlength')
+    } else {
+      passwordInput.setAttribute('required', 'required')
+      passwordInput.setAttribute('minlength', '6')
+    }
+  }
+  if (passwordHelp) {
+    passwordHelp.textContent = isEditMode
+      ? 'Deixe em branco se não desejar alterar a senha.'
+      : 'A senha é obrigatória para criar um novo funcionário.'
+  }
+  
+  // Mostrar/ocultar campos de data
+  if (hiringDateContainer) {
+    hiringDateContainer.style.display = isEditMode ? 'block' : 'none'
+  }
+  if (resignationDateContainer) {
+    resignationDateContainer.style.display = isEditMode ? 'block' : 'none'
+  }
+  
+  // Preencher os campos do formulário
+  document.getElementById('employeeMode').value = mode
+  document.getElementById('employeeId').value = employee?.id || ''
+  document.getElementById('employeeOriginalEmail').value = employee?.email || ''
+  document.getElementById('employeeFullname').value = employee?.fullname || ''
+  document.getElementById('employeeEmail').value = employee?.email || ''
+  document.getElementById('employeeSalary').value = employee?.salary || 0
+  document.getElementById('employeePassword').value = ''
+  
+  if (isEditMode && employee) {
+    // Preencher datas (formatar para input date: YYYY-MM-DD)
+    const hiringDate = employee.hiring_date 
+      ? formatDateForInput(employee.hiring_date) 
+      : ''
+    const resignationDate = employee.resignation_date 
+      ? formatDateForInput(employee.resignation_date) 
+      : ''
+    
+    document.getElementById('employeeHiringDate').value = hiringDate
+    document.getElementById('employeeResignationDate').value = resignationDate
+    
+    // Preencher checkbox de administrador
+    document.getElementById('employeeAdmin').checked = employee.admin || false
+  } else {
+    // Modo criação: limpar campos
+    document.getElementById('employeeHiringDate').value = ''
+    document.getElementById('employeeResignationDate').value = ''
+    document.getElementById('employeeAdmin').checked = false
+  }
+  
+  // Limpar validação anterior
+  const form = document.getElementById('employeeForm')
+  form.classList.remove('was-validated')
+  
+  // Abrir o modal
+  modal.show()
 }
 
-function handleDeleteEmployee(employee) {
-  showToast(`Excluir funcionário: ${employee.fullName}`)
+function handleEditEmployee(employee) {
+  openEmployeeModal('edit', employee)
+}
+
+function handleCreateEmployee() {
+  openEmployeeModal('create')
+}
+
+async function handleDeleteEmployee(employee) {
+  try {
+    if (!window.api) {
+      throw new Error('API não disponível')
+    }
+
+    const fullName = employee.fullname || 'N/A'
+    const email = employee.email || ''
+    const isActive = employee.active !== undefined ? employee.active : true
+
+    if (!email) {
+      throw new Error('E-mail do funcionário não encontrado')
+    }
+
+    // Usar rotas específicas para desativar/reativar
+    const result = isActive
+      ? await window.api.deactivateUser(email)
+      : await window.api.reactivateUser(email)
+
+    if (!result?.success) {
+      throw new Error(result?.error || 'Erro ao atualizar status do funcionário')
+    }
+
+    // Recarregar a lista de funcionários
+    await loadEmployees()
+
+    showToast(isActive
+      ? `Funcionário ${fullName} inativado com sucesso!` 
+      : `Funcionário ${fullName} reativado com sucesso!`)
+  } catch (error) {
+    showToast(`Erro: ${error.message || 'Erro ao atualizar status do funcionário'}`)
+  }
 }
 
 function formatDate(value) {
@@ -460,6 +765,24 @@ function formatDate(value) {
   }
 
   return dateFormatter.format(date)
+}
+
+function formatDateForInput(value) {
+  if (!value) {
+    return ''
+  }
+
+  const date = value instanceof Date ? value : new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  // Formatar para YYYY-MM-DD (formato do input date)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  
+  return `${year}-${month}-${day}`
 }
 
 function showToast(message) {
