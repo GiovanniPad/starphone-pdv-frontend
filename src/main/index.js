@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { registerProductHandlers } from './api/products.js'
 
 // URL base da API FastAPI
 const API_BASE_URL = 'http://localhost:8000'
@@ -60,6 +61,8 @@ app.whenReady().then(() => {
   ipcMain.on('ping', () => console.log('pong'))
 
   // API handlers - FastAPI
+  // Registrar handlers de produtos
+  registerProductHandlers(ipcMain)
   ipcMain.handle('api:getUsers', async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/users`)

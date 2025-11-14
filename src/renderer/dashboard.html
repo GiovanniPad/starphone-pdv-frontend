@@ -89,6 +89,7 @@
                         placeholder="Buscar produto por nome ou categoria"
                         aria-label="Buscar produto"
                       />
+                      <button type="button" class="btn btn-outline-secondary" id="categoriesBtn">Categorias</button>
                       <button type="button" class="btn btn-primary" id="addProductBtn">Novo produto</button>
                     </div>
                   </div>
@@ -296,6 +297,118 @@
               <button type="submit" class="btn btn-primary" id="employeeSubmitButton">Salvar</button>
             </div>
           </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Categoria (Edição/Criação) -->
+    <div
+      class="modal fade"
+      id="categoryModal"
+      tabindex="-1"
+      aria-labelledby="categoryModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="categoryModalLabel">Categoria</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <form id="categoryForm">
+            <div class="modal-body">
+              <input type="hidden" id="categoryId" name="id" />
+              <input type="hidden" id="categoryMode" name="mode" value="edit" />
+              
+              <div class="mb-3">
+                <label for="categoryName" class="form-label">Nome da categoria</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="categoryName"
+                  name="name"
+                  required
+                  minlength="2"
+                />
+                <div class="invalid-feedback">Informe um nome válido (mínimo 2 caracteres).</div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-primary" id="categorySubmitButton">Salvar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Confirmação de Exclusão de Categoria -->
+    <div
+      class="modal fade"
+      id="deleteCategoryModal"
+      tabindex="-1"
+      aria-labelledby="deleteCategoryModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="deleteCategoryModalLabel">Confirmar exclusão</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <p id="deleteCategoryMessage">Tem certeza que deseja excluir esta categoria?</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteCategoryBtn">Excluir</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Categorias -->
+    <div
+      class="modal fade"
+      id="categoriesModal"
+      tabindex="-1"
+      aria-labelledby="categoriesModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="categoriesModalLabel">Categorias</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <div class="d-flex justify-content-end mb-3">
+              <button type="button" class="btn btn-primary" id="addCategoryBtn">Nova categoria</button>
+            </div>
+            <div class="table-responsive">
+              <table class="table align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th scope="col">Nome</th>
+                    <th scope="col" class="text-end">Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="categoriesTableBody">
+                  <tr>
+                    <td colspan="2" class="text-center text-muted py-4">
+                      <div class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></div>
+                      Carregando categorias...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          </div>
         </div>
       </div>
     </div>

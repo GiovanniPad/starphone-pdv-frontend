@@ -2,6 +2,24 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import Toast from 'bootstrap/js/dist/toast'
 import Modal from 'bootstrap/js/dist/modal'
+import {
+  loadProducts,
+  renderProductTable,
+  renderSummary,
+  filterProductsBySearch,
+  setFilteredProducts,
+  getProductById,
+  getProducts
+} from './products.js'
+import {
+  loadCategories,
+  renderCategoriesTable,
+  getCategoryById,
+  createCategory,
+  updateCategory,
+  deleteCategory
+} from './categories.js'
+import { sortAlphabetically } from './utils.js'
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', {
   style: 'currency',
@@ -9,85 +27,8 @@ const currencyFormatter = new Intl.NumberFormat('pt-BR', {
 })
 const dateFormatter = new Intl.DateTimeFormat('pt-BR')
 
-const mockProducts = [
-  {
-    id: 1,
-    name: 'iPhone 15 Pro 256GB',
-    category: 'Smartphones',
-    quantity: 12,
-    saleValue: 10499,
-    costValue: 8999
-  },
-  {
-    id: 2,
-    name: 'Samsung Galaxy S24 128GB',
-    category: 'Smartphones',
-    quantity: 18,
-    saleValue: 6799,
-    costValue: 5120
-  },
-  {
-    id: 3,
-    name: 'Fone Bluetooth JBL Tune 520BT',
-    category: 'Acessórios',
-    quantity: 56,
-    saleValue: 449,
-    costValue: 275
-  },
-  {
-    id: 4,
-    name: 'Capa Silicone Transparente',
-    category: 'Acessórios',
-    quantity: 140,
-    saleValue: 79,
-    costValue: 28
-  },
-  {
-    id: 5,
-    name: 'Relógio Xiaomi Watch 2 Lite',
-    category: 'Wearables',
-    quantity: 24,
-    saleValue: 699,
-    costValue: 455
-  },
-  {
-    id: 6,
-    name: 'Carregador USB-C 30W',
-    category: 'Acessórios',
-    quantity: 88,
-    saleValue: 199,
-    costValue: 112
-  },
-  {
-    id: 7,
-    name: 'Notebook Dell Inspiron 15',
-    category: 'Notebooks',
-    quantity: 9,
-    saleValue: 4299,
-    costValue: 3480
-  },
-  {
-    id: 8,
-    name: 'Película de Vidro Premium',
-    category: 'Acessórios',
-    quantity: 210,
-    saleValue: 49,
-    costValue: 15
-  }
-]
-
-let filteredProducts = [...mockProducts]
 let employees = []
 let filteredEmployees = []
-
-// Função para ordenar funcionários alfabeticamente por nome
-function sortEmployeesAlphabetically(employeesList) {
-  return [...employeesList].sort((a, b) => {
-    const nameA = (a.fullname || '').toLowerCase().trim()
-    const nameB = (b.fullname || '').toLowerCase().trim()
-    return nameA.localeCompare(nameB, 'pt-BR')
-  })
-}
 
 // Função para filtrar funcionários por busca
 function filterEmployeesBySearch(employeesList, searchValue) {
@@ -96,22 +37,24 @@ function filterEmployeesBySearch(employeesList, searchValue) {
   }
   
   const value = searchValue.toLowerCase()
-  return sortEmployeesAlphabetically(employeesList.filter((employee) => {
+  return sortAlphabetically(employeesList.filter((employee) => {
     const fullName = employee.fullname || ''
     const email = employee.email || ''
     return (
       fullName.toLowerCase().includes(value) ||
       email.toLowerCase().includes(value)
     )
-  }))
+  }), 'fullname')
 }
 
 async function initDashboard() {
   // Aguardar um pouco para garantir que o preload terminou de carregar
   await new Promise(resolve => setTimeout(resolve, 200))
   
-  renderSummary()
-  renderProductTable()
+  // Expor showToast globalmente para o módulo de produtos
+  window.showToast = showToast
+  
+  await loadProducts()
   await loadEmployees()
   bindEvents()
   updateFooterYear()
@@ -142,7 +85,7 @@ async function loadEmployees() {
     const result = await window.api.getUsers()
     
     if (result?.success && result.data) {
-      employees = sortEmployeesAlphabetically(Array.isArray(result.data) ? result.data : [])
+      employees = sortAlphabetically(Array.isArray(result.data) ? result.data : [], 'fullname')
       
       // Reaplicar o filtro de busca se houver um valor
       if (searchValue.trim() !== '') {
@@ -163,142 +106,6 @@ async function loadEmployees() {
   }
 }
 
-function renderSummary() {
-  const summaryContainer = document.getElementById('summaryCards')
-  if (!summaryContainer) {
-    return
-  }
-
-  const totalProducts = filteredProducts.length
-  const totalUnits = filteredProducts.reduce((sum, product) => sum + (product.quantity ?? 0), 0)
-  const totalRevenue = filteredProducts.reduce(
-    (sum, product) => sum + product.saleValue * (product.quantity ?? 0),
-    0
-  )
-  const totalCost = filteredProducts.reduce(
-    (sum, product) => sum + product.costValue * (product.quantity ?? 0),
-    0
-  )
-  const totalProfit = totalRevenue - totalCost
-  const profitMargin = totalRevenue === 0 ? 0 : (totalProfit / totalRevenue) * 100
-
-  const summaryItems = [
-    {
-      id: 'inventory',
-      label: 'Itens cadastrados',
-      value: `${totalProducts}`,
-      helper: `${totalUnits} unidades em estoque`
-    },
-    {
-      id: 'profit',
-      label: 'Receita potencial',
-      value: currencyFormatter.format(totalRevenue),
-      helper: 'Somatório dos preços de venda'
-    },
-    {
-      id: 'cost',
-      label: 'Custo total',
-      value: currencyFormatter.format(totalCost),
-      helper: 'Investimento estimado em estoque'
-    },
-    {
-      id: 'margin',
-      label: 'Margem estimada',
-      value: `${profitMargin.toFixed(1)}%`,
-      helper: currencyFormatter.format(totalProfit) + ' de lucro'
-    }
-  ]
-
-  summaryContainer.innerHTML = summaryItems
-    .map(
-      (item) => `
-        <article class="col-12 col-md-6 col-xl-3">
-          <div class="summary-card card" data-type="${item.id}">
-            <div class="d-flex align-items-center gap-3">
-              <span class="summary-icon">${getSummaryIcon(item.id)}</span>
-              <div>
-                <p class="text-muted mb-1">${item.label}</p>
-                <h3>${item.value}</h3>
-                <p class="small">${item.helper}</p>
-              </div>
-            </div>
-          </div>
-        </article>
-      `
-    )
-    .join('')
-}
-
-function getSummaryIcon(type) {
-  const iconMap = {
-    inventory: '📦',
-    profit: '💰',
-    cost: '🧾',
-    margin: '📈'
-  }
-  return iconMap[type] ?? 'ℹ️'
-}
-
-function renderProductTable() {
-  const tableBody = document.getElementById('productTableBody')
-  if (!tableBody) {
-    return
-  }
-
-  if (filteredProducts.length === 0) {
-    tableBody.innerHTML = `
-      <tr>
-        <td colspan="7" class="text-center text-muted py-4">
-          Nenhum produto encontrado com os filtros atuais.
-        </td>
-      </tr>
-    `
-    return
-  }
-
-  tableBody.innerHTML = filteredProducts
-    .map((product) => {
-      const quantity = product.quantity ?? 0
-      const profitPerUnit = product.saleValue - product.costValue
-      const profitClass = profitPerUnit >= 0 ? 'text-success' : 'text-danger'
-      return `
-        <tr data-product-id="${product.id}">
-          <td>
-            <div class="fw-semibold">${product.name}</div>
-            <div class="text-muted small">ID #${product.id}</div>
-          </td>
-          <td>
-            <span class="badge bg-light text-dark">${product.category}</span>
-          </td>
-          <td class="text-end fw-semibold">${quantity}</td>
-          <td class="text-end fw-semibold">${currencyFormatter.format(product.saleValue)}</td>
-          <td class="text-end">${currencyFormatter.format(product.costValue)}</td>
-          <td class="text-end ${profitClass} fw-semibold">${currencyFormatter.format(profitPerUnit)}</td>
-          <td class="text-end">
-            <div class="action-buttons">
-              <button
-                type="button"
-                class="btn btn-outline-primary btn-sm"
-                data-action="edit"
-                data-product-id="${product.id}"
-              >
-                Editar
-              </button>
-              <button
-                type="button"
-                class="btn btn-outline-danger btn-sm"
-                data-action="delete"
-                data-product-id="${product.id}"
-              >
-                Excluir
-              </button>
-            </div>
-          </td>
-        </tr>
-      `
-    })
-    .join('')
-}
 
 function renderEmployeeTable() {
   const tableBody = document.getElementById('employeeTableBody')
@@ -380,37 +187,35 @@ function bindEvents() {
   const searchInput = document.getElementById('searchProduct')
   const refreshButton = document.getElementById('refreshDashboard')
   const addProductButton = document.getElementById('addProductBtn')
+  const categoriesButton = document.getElementById('categoriesBtn')
   const productTable = document.getElementById('productTableBody')
   const employeeSearchInput = document.getElementById('searchEmployee')
   const addEmployeeButton = document.getElementById('addEmployeeBtn')
   const employeeTable = document.getElementById('employeeTableBody')
 
   searchInput?.addEventListener('input', (event) => {
-    const value = event.target.value.toLowerCase()
-    filteredProducts = mockProducts.filter((product) => {
-      return (
-        product.name.toLowerCase().includes(value) ||
-        product.category.toLowerCase().includes(value)
-      )
-    })
-
+    const value = event.target.value
+    const filtered = filterProductsBySearch(getProducts(), value)
+    setFilteredProducts(filtered)
     renderSummary()
     renderProductTable()
   })
 
-  refreshButton?.addEventListener('click', () => {
+  refreshButton?.addEventListener('click', async () => {
     const search = document.getElementById('searchProduct')
     if (search) {
       search.value = ''
     }
-    filteredProducts = [...mockProducts]
-    renderSummary()
-    renderProductTable()
+    await loadProducts()
     showToast('Dados atualizados com sucesso!')
   })
 
   addProductButton?.addEventListener('click', () => {
     showToast('Funcionalidade de cadastro em desenvolvimento.')
+  })
+
+  categoriesButton?.addEventListener('click', async () => {
+    await openCategoriesModal()
   })
 
   productTable?.addEventListener('click', (event) => {
@@ -426,7 +231,7 @@ function bindEvents() {
 
     const action = actionButton.dataset.action
     const productId = Number(actionButton.dataset.productId)
-    const product = mockProducts.find((item) => item.id === productId)
+    const product = getProductById(productId)
     if (!product) {
       showToast('Produto não encontrado.')
       return
@@ -823,6 +628,321 @@ function updateFooterYear() {
   if (yearElement) {
     yearElement.textContent = String(new Date().getFullYear())
   }
+}
+
+async function openCategoriesModal() {
+  const modalElement = document.getElementById('categoriesModal')
+  if (!modalElement) {
+    showToast('Erro: Modal de categorias não encontrado.')
+    return
+  }
+
+  const modal = new Modal(modalElement)
+  
+  // Mostrar loading
+  const tableBody = document.getElementById('categoriesTableBody')
+  if (tableBody) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="2" class="text-center text-muted py-4">
+          <div class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></div>
+          Carregando categorias...
+        </td>
+      </tr>
+    `
+  }
+  
+  // Abrir o modal
+  modal.show()
+  
+  // Carregar categorias
+  await refreshCategoriesTable()
+  
+  // Bind events da tabela de categorias
+  bindCategoryTableEvents(modalElement)
+}
+
+async function refreshCategoriesTable() {
+  const tableBody = document.getElementById('categoriesTableBody')
+  if (!tableBody) {
+    return
+  }
+  
+  try {
+    const categories = await loadCategories()
+    renderCategoriesTable(categories)
+  } catch (error) {
+    if (tableBody) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="2" class="text-center text-danger py-4">
+            Erro ao carregar categorias.
+          </td>
+        </tr>
+      `
+    }
+  }
+}
+
+// Variáveis para armazenar os event listeners e evitar duplicação
+let categoryTableClickHandler = null
+let categoryFormSubmitHandler = null
+let addCategoryButtonClickHandler = null
+
+function bindCategoryTableEvents(modalElement) {
+  const addCategoryButton = document.getElementById('addCategoryBtn')
+  const categoryTable = document.getElementById('categoriesTableBody')
+  
+  // Remover listeners antigos se existirem
+  if (addCategoryButtonClickHandler) {
+    addCategoryButton?.removeEventListener('click', addCategoryButtonClickHandler)
+  }
+  if (categoryTableClickHandler) {
+    categoryTable?.removeEventListener('click', categoryTableClickHandler)
+  }
+  
+  // Botão de adicionar categoria
+  addCategoryButtonClickHandler = () => {
+    openCategoryModal('create')
+  }
+  addCategoryButton?.addEventListener('click', addCategoryButtonClickHandler)
+  
+  // Event listeners da tabela
+  categoryTableClickHandler = async (event) => {
+    const target = event.target
+    if (!(target instanceof HTMLElement)) {
+      return
+    }
+
+    const actionButton = target.closest('button[data-action][data-category-id]')
+    if (!(actionButton instanceof HTMLElement)) {
+      return
+    }
+
+    const action = actionButton.dataset.action
+    const categoryId = Number(actionButton.dataset.categoryId)
+    
+    if (action === 'edit') {
+      const category = await getCategoryById(categoryId)
+      if (category) {
+        openCategoryModal('edit', category)
+      } else {
+        showToast('Categoria não encontrada.')
+      }
+    } else if (action === 'delete') {
+      await handleDeleteCategory(categoryId)
+    }
+  }
+  categoryTable?.addEventListener('click', categoryTableClickHandler)
+  
+  // Handler do formulário de categoria
+  const categoryForm = document.getElementById('categoryForm')
+  
+  // Remover listener antigo se existir
+  if (categoryFormSubmitHandler) {
+    categoryForm?.removeEventListener('submit', categoryFormSubmitHandler)
+  }
+  
+  categoryFormSubmitHandler = async (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const form = event.target
+    if (!form.checkValidity()) {
+      form.classList.add('was-validated')
+      return
+    }
+
+    const formData = new FormData(form)
+    const mode = formData.get('mode') || 'edit'
+    const categoryId = Number(formData.get('id'))
+    const categoryData = {
+      name: formData.get('name') || ''
+    }
+
+    // Desabilitar botão de submit durante a requisição
+    const submitButton = form.querySelector('button[type="submit"]')
+    const originalButtonText = submitButton?.textContent || 'Salvar'
+    if (submitButton) {
+      submitButton.disabled = true
+      submitButton.textContent = mode === 'create' ? 'Criando...' : 'Salvando...'
+    }
+
+    try {
+      const result = mode === 'create'
+        ? await createCategory(categoryData)
+        : await updateCategory(categoryId, categoryData)
+
+      if (!result?.success) {
+        throw new Error(result?.error || 'Erro desconhecido')
+      }
+
+      await refreshCategoriesTable()
+      
+      const categoryModalElement = document.getElementById('categoryModal')
+      const categoryModal = Modal.getInstance(categoryModalElement)
+      if (categoryModal) {
+        categoryModal.hide()
+        // Resetar z-index após fechar
+        if (categoryModalElement) {
+          categoryModalElement.style.zIndex = ''
+        }
+      }
+
+      showToast(mode === 'create' 
+        ? 'Categoria criada com sucesso!' 
+        : 'Categoria atualizada com sucesso!')
+    } catch (error) {
+      showToast(`Erro: ${error.message || 'Erro desconhecido'}`)
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false
+        submitButton.textContent = originalButtonText
+      }
+    }
+  }
+  categoryForm?.addEventListener('submit', categoryFormSubmitHandler)
+}
+
+function openCategoryModal(mode, category = null) {
+  const modalElement = document.getElementById('categoryModal')
+  if (!modalElement) {
+    showToast('Erro: Modal de categoria não encontrado.')
+    return
+  }
+
+  // Verificar se já existe uma instância do modal
+  let modal = Modal.getInstance(modalElement)
+  if (!modal) {
+    // Criar nova instância
+    modal = new Modal(modalElement, {
+      backdrop: true,
+      focus: true
+    })
+  }
+  
+  const isEditMode = mode === 'edit'
+  
+  // Atualizar título do modal
+  const modalTitle = document.getElementById('categoryModalLabel')
+  const submitButton = document.getElementById('categorySubmitButton')
+  
+  if (modalTitle) {
+    modalTitle.textContent = isEditMode ? 'Editar Categoria' : 'Nova Categoria'
+  }
+  if (submitButton) {
+    submitButton.textContent = isEditMode ? 'Salvar alterações' : 'Criar categoria'
+  }
+  
+  // Preencher os campos do formulário
+  document.getElementById('categoryMode').value = mode
+  document.getElementById('categoryId').value = category?.id || ''
+  document.getElementById('categoryName').value = category?.name || ''
+  
+  // Limpar validação anterior
+  const form = document.getElementById('categoryForm')
+  form.classList.remove('was-validated')
+  
+  // Abrir o modal
+  modal.show()
+  
+  // Aguardar um pouco para o modal ser renderizado e ajustar z-index
+  setTimeout(() => {
+    // Ajustar z-index do modal para aparecer acima do modal de lista
+    // Bootstrap modal z-index padrão é 1055, então usamos 1056
+    modalElement.style.zIndex = '1056'
+    
+    // Ajustar z-index do backdrop do modal de categoria
+    const backdrops = document.querySelectorAll('.modal-backdrop')
+    if (backdrops.length > 1) {
+      // O último backdrop é do modal de categoria
+      backdrops[backdrops.length - 1].style.zIndex = '1055'
+    }
+  }, 10)
+  
+  // Resetar z-index quando o modal for fechado
+  const handleModalHidden = () => {
+    modalElement.style.zIndex = ''
+    modalElement.removeEventListener('hidden.bs.modal', handleModalHidden)
+  }
+  modalElement.addEventListener('hidden.bs.modal', handleModalHidden)
+}
+
+async function handleDeleteCategory(categoryId) {
+  const category = await getCategoryById(categoryId)
+  if (!category) {
+    showToast('Categoria não encontrada.')
+    return
+  }
+
+  const categoryName = category.name || 'N/A'
+  
+  // Abrir modal de confirmação
+  const modalElement = document.getElementById('deleteCategoryModal')
+  if (!modalElement) {
+    showToast('Erro: Modal de confirmação não encontrado.')
+    return
+  }
+
+  const modal = new Modal(modalElement)
+  const messageElement = document.getElementById('deleteCategoryMessage')
+  const confirmButton = document.getElementById('confirmDeleteCategoryBtn')
+  
+  if (messageElement) {
+    messageElement.textContent = `Tem certeza que deseja excluir a categoria "${categoryName}"?`
+  }
+  
+  // Remover listeners anteriores
+  const newConfirmButton = confirmButton?.cloneNode(true)
+  if (confirmButton && newConfirmButton) {
+    confirmButton.parentNode?.replaceChild(newConfirmButton, confirmButton)
+  }
+  
+  // Adicionar listener ao botão de confirmação
+  const finalConfirmButton = document.getElementById('confirmDeleteCategoryBtn')
+  finalConfirmButton?.addEventListener('click', async () => {
+    if (finalConfirmButton) {
+      finalConfirmButton.disabled = true
+      finalConfirmButton.textContent = 'Excluindo...'
+    }
+    
+    try {
+      const result = await deleteCategory(categoryId)
+      
+      if (result?.success) {
+        modal.hide()
+        await refreshCategoriesTable()
+        showToast(`Categoria "${categoryName}" excluída com sucesso!`)
+      } else {
+        throw new Error(result?.error || 'Erro ao excluir categoria')
+      }
+    } catch (error) {
+      showToast(`Erro: ${error.message || 'Erro ao excluir categoria'}`)
+    } finally {
+      if (finalConfirmButton) {
+        finalConfirmButton.disabled = false
+        finalConfirmButton.textContent = 'Excluir'
+      }
+    }
+  })
+  
+  // Ajustar z-index para aparecer acima do modal de lista
+  modal.show()
+  setTimeout(() => {
+    modalElement.style.zIndex = '1057' // Acima do modal de categoria (1056)
+    
+    const backdrops = document.querySelectorAll('.modal-backdrop')
+    if (backdrops.length > 1) {
+      backdrops[backdrops.length - 1].style.zIndex = '1056'
+    }
+  }, 10)
+  
+  // Resetar z-index quando o modal for fechado
+  const handleModalHidden = () => {
+    modalElement.style.zIndex = ''
+    modalElement.removeEventListener('hidden.bs.modal', handleModalHidden)
+  }
+  modalElement.addEventListener('hidden.bs.modal', handleModalHidden)
 }
 
 document.addEventListener('DOMContentLoaded', initDashboard)
