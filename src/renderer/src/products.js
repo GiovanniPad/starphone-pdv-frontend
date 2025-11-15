@@ -282,6 +282,76 @@ export function getProductById(productId) {
   return products.find((item) => item.id === productId) || null
 }
 
+/**
+ * Cria um novo produto
+ * @param {Object} productData - Dados do produto
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function createProduct(productData) {
+  try {
+    if (!window.api?.createProduct) {
+      throw new Error('API não disponível')
+    }
+
+    const result = await window.api.createProduct(productData)
+    
+    if (result?.success) {
+      return { success: true }
+    } else {
+      throw new Error(result?.error || 'Erro ao criar produto')
+    }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Atualiza um produto
+ * @param {number} productId - ID do produto
+ * @param {Object} productData - Dados do produto
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function updateProduct(productId, productData) {
+  try {
+    if (!window.api?.updateProduct) {
+      throw new Error('API não disponível')
+    }
+
+    const result = await window.api.updateProduct(productId, productData)
+    
+    if (result?.success) {
+      return { success: true }
+    } else {
+      throw new Error(result?.error || 'Erro ao atualizar produto')
+    }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Deleta um produto
+ * @param {number} productId - ID do produto
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function deleteProduct(productId) {
+  try {
+    if (!window.api?.deleteProduct) {
+      throw new Error('API não disponível')
+    }
+
+    const result = await window.api.deleteProduct(productId)
+    
+    if (result?.success) {
+      return { success: true }
+    } else {
+      throw new Error(result?.error || 'Erro ao excluir produto')
+    }
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}
+
 // Função auxiliar para mostrar toast (será importada do renderer.js ou definida aqui)
 function showToast(message) {
   // Esta função será injetada pelo renderer.js

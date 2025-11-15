@@ -2,6 +2,7 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 import Toast from 'bootstrap/js/dist/toast'
 import Modal from 'bootstrap/js/dist/modal'
+import { openFormModal, openConfirmModal, closeModal } from './modal-utils.js'
 import {
   loadProducts,
   renderProductTable,
@@ -9,7 +10,10 @@ import {
   filterProductsBySearch,
   setFilteredProducts,
   getProductById,
-  getProducts
+  getProducts,
+  createProduct,
+  updateProduct,
+  deleteProduct
 } from './products.js'
 import {
   loadCategories,
@@ -211,7 +215,7 @@ function bindEvents() {
   })
 
   addProductButton?.addEventListener('click', () => {
-    showToast('Funcionalidade de cadastro em desenvolvimento.')
+    openProductModal('create')
   })
 
   categoriesButton?.addEventListener('click', async () => {
@@ -282,6 +286,63 @@ function bindEvents() {
 
   // Handler do formulário de funcionário (criação/edição)
   const employeeForm = document.getElementById('employeeForm')
+  const productForm = document.getElementById('productForm')
+  productForm?.addEventListener('submit', async (event) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const form = event.target
+    if (!form.checkValidity()) {
+      form.classList.add('was-validated')
+      return
+    }
+
+    const formData = new FormData(form)
+    const mode = formData.get('mode') || 'create'
+    const productId = Number(formData.get('id'))
+    const productData = {
+      name: formData.get('name') || '',
+      category_id: Number(formData.get('category_id')),
+      quantity: Number(formData.get('quantity')) || 0,
+      cost_value: Number(formData.get('cost_value')) || 0,
+      profit_value: Number(formData.get('profit_value')) || 0
+    }
+
+    // Desabilitar botão durante a requisição
+    const submitButton = form.querySelector('button[type="submit"]')
+    const originalButtonText = submitButton?.textContent || 'Salvar'
+    if (submitButton) {
+      submitButton.disabled = true
+      submitButton.textContent = mode === 'create' ? 'Criando...' : 'Salvando...'
+    }
+
+    try {
+      const result = mode === 'create'
+        ? await createProduct(productData)
+        : await updateProduct(productId, productData)
+
+      if (!result?.success) {
+        throw new Error(result?.error || 'Erro desconhecido')
+      }
+
+      // Fechar modal
+      closeModal('productModal')
+
+      // Recarregar produtos
+      await loadProducts()
+      showToast(mode === 'create' 
+        ? 'Produto criado com sucesso!' 
+        : 'Produto atualizado com sucesso!')
+    } catch (error) {
+      showToast(`Erro: ${error.message || 'Erro desconhecido'}`)
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false
+        submitButton.textContent = originalButtonText
+      }
+    }
+  })
+
   employeeForm?.addEventListener('submit', async (event) => {
     event.preventDefault()
     event.stopPropagation()
@@ -399,9 +460,7 @@ function bindEvents() {
 
       await loadEmployees()
       
-      const modalElement = document.getElementById('employeeModal')
-      const modal = Modal.getInstance(modalElement)
-      modal?.hide()
+      closeModal('employeeModal')
 
       showToast(mode === 'create' 
         ? 'Funcionário criado com sucesso!' 
@@ -418,103 +477,150 @@ function bindEvents() {
 }
 
 function handleEditProduct(product) {
-  showToast(`Editar produto: ${product.name}`)
+  openProductModal('edit', product)
 }
 
-function handleDeleteProduct(product) {
-  // No futuro poderemos pedir confirmação e chamar a API.
-  showToast(`Excluir produto: ${product.name}`)
-}
-
-function openEmployeeModal(mode, employee = null) {
-  const modalElement = document.getElementById('employeeModal')
-  if (!modalElement) {
-    showToast('Erro: Modal de funcionário não encontrado.')
+async function handleDeleteProduct(product) {
+  if (!product) {
+    showToast('Produto não encontrado.')
     return
   }
 
-  const modal = new Modal(modalElement)
+  const productName = product.name || 'N/A'
+  
+  openConfirmModal({
+    modalId: 'deleteProductModal',
+    messageId: 'deleteProductMessage',
+    confirmButtonId: 'confirmDeleteProductBtn',
+    message: `Tem certeza que deseja excluir o produto "${productName}"?`,
+    buttonTexts: { default: 'Excluir', loading: 'Excluindo...' },
+    zIndex: 1057,
+    onConfirm: async (modal) => {
+      const result = await deleteProduct(product.id)
+      
+      if (result?.success) {
+        modal.hide()
+        await loadProducts()
+        showToast(`Produto "${productName}" excluído com sucesso!`)
+      } else {
+        throw new Error(result?.error || 'Erro ao excluir produto')
+      }
+    }
+  })
+}
+
+async function openProductModal(mode = 'create', product = null) {
   const isEditMode = mode === 'edit'
   
-  // Atualizar título do modal
-  const modalTitle = document.getElementById('employeeModalLabel')
-  const submitButton = document.getElementById('employeeSubmitButton')
-  const passwordInput = document.getElementById('employeePassword')
-  const passwordHelp = document.getElementById('employeePasswordHelp')
-  const hiringDateContainer = document.getElementById('employeeHiringDateContainer')
-  const resignationDateContainer = document.getElementById('employeeResignationDateContainer')
-  
-  if (modalTitle) {
-    modalTitle.textContent = isEditMode ? 'Editar Funcionário' : 'Novo Funcionário'
-  }
-  if (submitButton) {
-    submitButton.textContent = isEditMode ? 'Salvar alterações' : 'Criar funcionário'
-  }
-  if (passwordInput) {
-    passwordInput.placeholder = isEditMode 
-      ? 'Deixe em branco para não alterar' 
-      : 'Digite a senha do funcionário'
-    // Limpar validação customizada
-    passwordInput.setCustomValidity('')
-    // Remover required se estiver em modo de edição
-    if (isEditMode) {
-      passwordInput.removeAttribute('required')
-      passwordInput.removeAttribute('minlength')
-    } else {
-      passwordInput.setAttribute('required', 'required')
-      passwordInput.setAttribute('minlength', '6')
+  openFormModal({
+    modalId: 'productModal',
+    titleId: 'productModalLabel',
+    submitButtonId: 'productSubmitButton',
+    formId: 'productForm',
+    mode,
+    titles: { create: 'Novo Produto', edit: 'Editar Produto' },
+    buttonTexts: { create: 'Criar produto', edit: 'Salvar alterações' },
+    fields: {
+      productMode: mode,
+      productId: product?.id || '',
+      productName: product?.name || '',
+      productQuantity: product?.quantity || 0,
+      productCostValue: product?.cost_value || 0,
+      productProfitValue: product?.profit_value || 0
+    },
+    onBeforeOpen: async (modalElement, isEdit) => {
+      // Carregar e preencher categorias
+      let categories = []
+      try {
+        categories = await loadCategories()
+      } catch (error) {
+        showToast(`Erro ao carregar categorias: ${error.message}`)
+      }
+      
+      const categorySelect = document.getElementById('productCategory')
+      if (categorySelect) {
+        categorySelect.innerHTML = '<option value="">Selecione uma categoria</option>'
+        categories.forEach(category => {
+          const option = document.createElement('option')
+          option.value = category.id
+          option.textContent = category.name
+          if (isEdit && product?.category?.id === category.id) {
+            option.selected = true
+          }
+          categorySelect.appendChild(option)
+        })
+      }
     }
-  }
-  if (passwordHelp) {
-    passwordHelp.textContent = isEditMode
-      ? 'Deixe em branco se não desejar alterar a senha.'
-      : 'A senha é obrigatória para criar um novo funcionário.'
-  }
+  })
+}
+
+function openEmployeeModal(mode, employee = null) {
+  const isEditMode = mode === 'edit'
   
-  // Mostrar/ocultar campos de data
-  if (hiringDateContainer) {
-    hiringDateContainer.style.display = isEditMode ? 'block' : 'none'
+  const fields = {
+    employeeMode: mode,
+    employeeId: employee?.id || '',
+    employeeOriginalEmail: employee?.email || '',
+    employeeFullname: employee?.fullname || '',
+    employeeEmail: employee?.email || '',
+    employeeSalary: employee?.salary || 0,
+    employeePassword: ''
   }
-  if (resignationDateContainer) {
-    resignationDateContainer.style.display = isEditMode ? 'block' : 'none'
-  }
-  
-  // Preencher os campos do formulário
-  document.getElementById('employeeMode').value = mode
-  document.getElementById('employeeId').value = employee?.id || ''
-  document.getElementById('employeeOriginalEmail').value = employee?.email || ''
-  document.getElementById('employeeFullname').value = employee?.fullname || ''
-  document.getElementById('employeeEmail').value = employee?.email || ''
-  document.getElementById('employeeSalary').value = employee?.salary || 0
-  document.getElementById('employeePassword').value = ''
   
   if (isEditMode && employee) {
-    // Preencher datas (formatar para input date: YYYY-MM-DD)
-    const hiringDate = employee.hiring_date 
-      ? formatDateForInput(employee.hiring_date) 
-      : ''
-    const resignationDate = employee.resignation_date 
-      ? formatDateForInput(employee.resignation_date) 
-      : ''
-    
-    document.getElementById('employeeHiringDate').value = hiringDate
-    document.getElementById('employeeResignationDate').value = resignationDate
-    
-    // Preencher checkbox de administrador
-    document.getElementById('employeeAdmin').checked = employee.admin || false
+    const hiringDate = employee.hiring_date ? formatDateForInput(employee.hiring_date) : ''
+    const resignationDate = employee.resignation_date ? formatDateForInput(employee.resignation_date) : ''
+    fields.employeeHiringDate = hiringDate
+    fields.employeeResignationDate = resignationDate
+    fields.employeeAdmin = employee.admin || false
   } else {
-    // Modo criação: limpar campos
-    document.getElementById('employeeHiringDate').value = ''
-    document.getElementById('employeeResignationDate').value = ''
-    document.getElementById('employeeAdmin').checked = false
+    fields.employeeHiringDate = ''
+    fields.employeeResignationDate = ''
+    fields.employeeAdmin = false
   }
   
-  // Limpar validação anterior
-  const form = document.getElementById('employeeForm')
-  form.classList.remove('was-validated')
-  
-  // Abrir o modal
-  modal.show()
+  openFormModal({
+    modalId: 'employeeModal',
+    titleId: 'employeeModalLabel',
+    submitButtonId: 'employeeSubmitButton',
+    formId: 'employeeForm',
+    mode,
+    titles: { create: 'Novo Funcionário', edit: 'Editar Funcionário' },
+    buttonTexts: { create: 'Criar funcionário', edit: 'Salvar alterações' },
+    fields,
+    onBeforeOpen: async (modalElement, isEdit) => {
+      const passwordInput = document.getElementById('employeePassword')
+      const passwordHelp = document.getElementById('employeePasswordHelp')
+      const hiringDateContainer = document.getElementById('employeeHiringDateContainer')
+      const resignationDateContainer = document.getElementById('employeeResignationDateContainer')
+      
+      if (passwordInput) {
+        passwordInput.placeholder = isEdit 
+          ? 'Deixe em branco para não alterar' 
+          : 'Digite a senha do funcionário'
+        passwordInput.setCustomValidity('')
+        if (isEdit) {
+          passwordInput.removeAttribute('required')
+          passwordInput.removeAttribute('minlength')
+        } else {
+          passwordInput.setAttribute('required', 'required')
+          passwordInput.setAttribute('minlength', '6')
+        }
+      }
+      if (passwordHelp) {
+        passwordHelp.textContent = isEdit
+          ? 'Deixe em branco se não desejar alterar a senha.'
+          : 'A senha é obrigatória para criar um novo funcionário.'
+      }
+      
+      if (hiringDateContainer) {
+        hiringDateContainer.style.display = isEdit ? 'block' : 'none'
+      }
+      if (resignationDateContainer) {
+        resignationDateContainer.style.display = isEdit ? 'block' : 'none'
+      }
+    }
+  })
 }
 
 function handleEditEmployee(employee) {
@@ -805,67 +911,36 @@ function bindCategoryTableEvents(modalElement) {
 }
 
 function openCategoryModal(mode, category = null) {
-  const modalElement = document.getElementById('categoryModal')
-  if (!modalElement) {
-    showToast('Erro: Modal de categoria não encontrado.')
-    return
-  }
-
-  // Verificar se já existe uma instância do modal
-  let modal = Modal.getInstance(modalElement)
-  if (!modal) {
-    // Criar nova instância
-    modal = new Modal(modalElement, {
-      backdrop: true,
-      focus: true
-    })
-  }
-  
-  const isEditMode = mode === 'edit'
-  
-  // Atualizar título do modal
-  const modalTitle = document.getElementById('categoryModalLabel')
-  const submitButton = document.getElementById('categorySubmitButton')
-  
-  if (modalTitle) {
-    modalTitle.textContent = isEditMode ? 'Editar Categoria' : 'Nova Categoria'
-  }
-  if (submitButton) {
-    submitButton.textContent = isEditMode ? 'Salvar alterações' : 'Criar categoria'
-  }
-  
-  // Preencher os campos do formulário
-  document.getElementById('categoryMode').value = mode
-  document.getElementById('categoryId').value = category?.id || ''
-  document.getElementById('categoryName').value = category?.name || ''
-  
-  // Limpar validação anterior
-  const form = document.getElementById('categoryForm')
-  form.classList.remove('was-validated')
-  
-  // Abrir o modal
-  modal.show()
-  
-  // Aguardar um pouco para o modal ser renderizado e ajustar z-index
-  setTimeout(() => {
-    // Ajustar z-index do modal para aparecer acima do modal de lista
-    // Bootstrap modal z-index padrão é 1055, então usamos 1056
-    modalElement.style.zIndex = '1056'
-    
-    // Ajustar z-index do backdrop do modal de categoria
-    const backdrops = document.querySelectorAll('.modal-backdrop')
-    if (backdrops.length > 1) {
-      // O último backdrop é do modal de categoria
-      backdrops[backdrops.length - 1].style.zIndex = '1055'
+  openFormModal({
+    modalId: 'categoryModal',
+    titleId: 'categoryModalLabel',
+    submitButtonId: 'categorySubmitButton',
+    formId: 'categoryForm',
+    mode,
+    titles: { create: 'Nova Categoria', edit: 'Editar Categoria' },
+    buttonTexts: { create: 'Criar categoria', edit: 'Salvar alterações' },
+    fields: {
+      categoryMode: mode,
+      categoryId: category?.id || '',
+      categoryName: category?.name || ''
+    },
+    onBeforeOpen: async (modalElement) => {
+      // Ajustar z-index para aparecer acima do modal de lista
+      setTimeout(() => {
+        modalElement.style.zIndex = '1056'
+        const backdrops = document.querySelectorAll('.modal-backdrop')
+        if (backdrops.length > 1) {
+          backdrops[backdrops.length - 1].style.zIndex = '1055'
+        }
+      }, 10)
+      
+      const handleModalHidden = () => {
+        modalElement.style.zIndex = ''
+        modalElement.removeEventListener('hidden.bs.modal', handleModalHidden)
+      }
+      modalElement.addEventListener('hidden.bs.modal', handleModalHidden)
     }
-  }, 10)
-  
-  // Resetar z-index quando o modal for fechado
-  const handleModalHidden = () => {
-    modalElement.style.zIndex = ''
-    modalElement.removeEventListener('hidden.bs.modal', handleModalHidden)
-  }
-  modalElement.addEventListener('hidden.bs.modal', handleModalHidden)
+  })
 }
 
 async function handleDeleteCategory(categoryId) {
@@ -877,36 +952,14 @@ async function handleDeleteCategory(categoryId) {
 
   const categoryName = category.name || 'N/A'
   
-  // Abrir modal de confirmação
-  const modalElement = document.getElementById('deleteCategoryModal')
-  if (!modalElement) {
-    showToast('Erro: Modal de confirmação não encontrado.')
-    return
-  }
-
-  const modal = new Modal(modalElement)
-  const messageElement = document.getElementById('deleteCategoryMessage')
-  const confirmButton = document.getElementById('confirmDeleteCategoryBtn')
-  
-  if (messageElement) {
-    messageElement.textContent = `Tem certeza que deseja excluir a categoria "${categoryName}"?`
-  }
-  
-  // Remover listeners anteriores
-  const newConfirmButton = confirmButton?.cloneNode(true)
-  if (confirmButton && newConfirmButton) {
-    confirmButton.parentNode?.replaceChild(newConfirmButton, confirmButton)
-  }
-  
-  // Adicionar listener ao botão de confirmação
-  const finalConfirmButton = document.getElementById('confirmDeleteCategoryBtn')
-  finalConfirmButton?.addEventListener('click', async () => {
-    if (finalConfirmButton) {
-      finalConfirmButton.disabled = true
-      finalConfirmButton.textContent = 'Excluindo...'
-    }
-    
-    try {
+  openConfirmModal({
+    modalId: 'deleteCategoryModal',
+    messageId: 'deleteCategoryMessage',
+    confirmButtonId: 'confirmDeleteCategoryBtn',
+    message: `Tem certeza que deseja excluir a categoria "${categoryName}"?`,
+    buttonTexts: { default: 'Excluir', loading: 'Excluindo...' },
+    zIndex: 1057,
+    onConfirm: async (modal) => {
       const result = await deleteCategory(categoryId)
       
       if (result?.success) {
@@ -916,33 +969,8 @@ async function handleDeleteCategory(categoryId) {
       } else {
         throw new Error(result?.error || 'Erro ao excluir categoria')
       }
-    } catch (error) {
-      showToast(`Erro: ${error.message || 'Erro ao excluir categoria'}`)
-    } finally {
-      if (finalConfirmButton) {
-        finalConfirmButton.disabled = false
-        finalConfirmButton.textContent = 'Excluir'
-      }
     }
   })
-  
-  // Ajustar z-index para aparecer acima do modal de lista
-  modal.show()
-  setTimeout(() => {
-    modalElement.style.zIndex = '1057' // Acima do modal de categoria (1056)
-    
-    const backdrops = document.querySelectorAll('.modal-backdrop')
-    if (backdrops.length > 1) {
-      backdrops[backdrops.length - 1].style.zIndex = '1056'
-    }
-  }, 10)
-  
-  // Resetar z-index quando o modal for fechado
-  const handleModalHidden = () => {
-    modalElement.style.zIndex = ''
-    modalElement.removeEventListener('hidden.bs.modal', handleModalHidden)
-  }
-  modalElement.addEventListener('hidden.bs.modal', handleModalHidden)
 }
 
 document.addEventListener('DOMContentLoaded', initDashboard)

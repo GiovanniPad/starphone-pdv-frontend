@@ -22,6 +22,86 @@ export async function getProducts() {
 }
 
 /**
+ * Handler para criar produto na API
+ * @param {Object} productData - Dados do produto
+ * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+ */
+export async function createProduct(productData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/products/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(productData)
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: `Erro ${response.status}` }))
+      throw new Error(errorData.detail || `Erro ${response.status}`)
+    }
+
+    const data = await response.json()
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error creating product:', error.message)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Handler para atualizar produto na API
+ * @param {number} productId - ID do produto
+ * @param {Object} productData - Dados do produto
+ * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+ */
+export async function updateProduct(productId, productData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/products/${productId}/`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(productData)
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: `Erro ${response.status}` }))
+      throw new Error(errorData.detail || `Erro ${response.status}`)
+    }
+
+    const data = await response.json()
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error updating product:', error.message)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Handler para deletar produto na API
+ * @param {number} productId - ID do produto
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function deleteProduct(productId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/products/${productId}/`, {
+      method: 'DELETE'
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: `Erro ${response.status}` }))
+      throw new Error(errorData.detail || `Erro ${response.status}`)
+    }
+
+    return { success: true }
+  } catch (error) {
+    console.error('Error deleting product:', error.message)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
  * Handler para buscar categorias da API
  * @returns {Promise<{success: boolean, data?: any[], error?: string}>}
  */
@@ -128,6 +208,18 @@ export async function deleteCategory(categoryId) {
 export function registerProductHandlers(ipcMain) {
   ipcMain.handle('api:getProducts', async () => {
     return await getProducts()
+  })
+  
+  ipcMain.handle('api:createProduct', async (_, productData) => {
+    return await createProduct(productData)
+  })
+  
+  ipcMain.handle('api:updateProduct', async (_, productId, productData) => {
+    return await updateProduct(productId, productData)
+  })
+  
+  ipcMain.handle('api:deleteProduct', async (_, productId) => {
+    return await deleteProduct(productId)
   })
   
   ipcMain.handle('api:getCategories', async () => {

@@ -301,6 +301,135 @@
       </div>
     </div>
 
+    <!-- Modal de Produto (Criação) -->
+    <div
+      class="modal fade"
+      id="productModal"
+      tabindex="-1"
+      aria-labelledby="productModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="productModalLabel">Produto</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <form id="productForm">
+            <div class="modal-body">
+              <input type="hidden" id="productId" name="id" />
+              <input type="hidden" id="productMode" name="mode" value="create" />
+              
+              <div class="mb-3">
+                <label for="productName" class="form-label">Nome do produto</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="productName"
+                  name="name"
+                  required
+                  minlength="2"
+                />
+                <div class="invalid-feedback">Informe um nome válido (mínimo 2 caracteres).</div>
+              </div>
+
+              <div class="mb-3">
+                <label for="productCategory" class="form-label">Categoria</label>
+                <select
+                  class="form-select"
+                  id="productCategory"
+                  name="category_id"
+                  required
+                >
+                  <option value="">Selecione uma categoria</option>
+                </select>
+                <div class="invalid-feedback">Selecione uma categoria.</div>
+              </div>
+
+              <div class="mb-3">
+                <label for="productQuantity" class="form-label">Quantidade</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="productQuantity"
+                  name="quantity"
+                  min="0"
+                  step="1"
+                  required
+                />
+                <div class="invalid-feedback">Informe uma quantidade válida (mínimo 0).</div>
+              </div>
+
+              <div class="mb-3">
+                <label for="productCostValue" class="form-label">Valor de custo</label>
+                <div class="input-group">
+                  <span class="input-group-text">R$</span>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="productCostValue"
+                    name="cost_value"
+                    step="0.01"
+                    min="0"
+                    required
+                  />
+                </div>
+                <div class="invalid-feedback">Informe um valor de custo válido.</div>
+              </div>
+
+              <div class="mb-3">
+                <label for="productProfitValue" class="form-label">Valor do lucro</label>
+                <div class="input-group">
+                  <span class="input-group-text">R$</span>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="productProfitValue"
+                    name="profit_value"
+                    step="0.01"
+                    min="0"
+                    required
+                  />
+                </div>
+                <div class="invalid-feedback">Informe um valor de lucro válido.</div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-primary" id="productSubmitButton">Criar produto</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Confirmação de Exclusão de Produto -->
+    <div
+      class="modal fade"
+      id="deleteProductModal"
+      tabindex="-1"
+      aria-labelledby="deleteProductModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="deleteProductModalLabel">Confirmar exclusão</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+          </div>
+          <div class="modal-body">
+            <p id="deleteProductMessage">Tem certeza que deseja excluir este produto?</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteProductBtn">Excluir</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Modal de Categoria (Edição/Criação) -->
     <div
       class="modal fade"
