@@ -61,6 +61,7 @@ async function initDashboard() {
   await loadProducts()
   await loadEmployees()
   bindEvents()
+  initTabBarAnimation()
   updateFooterYear()
 }
 
@@ -99,6 +100,7 @@ async function loadEmployees() {
       }
       
       renderEmployeeTable()
+      renderEmployeeSummary()
     } else {
       throw new Error(result?.error || 'Erro ao carregar funcionários')
     }
@@ -107,6 +109,7 @@ async function loadEmployees() {
     employees = []
     filteredEmployees = []
     renderEmployeeTable()
+    renderEmployeeSummary()
   }
 }
 
@@ -136,10 +139,10 @@ function renderEmployeeTable() {
       const hireDate = formatDate(employee.hiring_date)
       const terminationDate = formatDate(employee.resignation_date)
       const isAdmin = employee.admin || false
-      const adminBadgeClass = isAdmin ? 'bg-success-subtle text-success-emphasis' : 'bg-light text-dark'
+      const adminBadgeClass = isAdmin ? 'bg-success text-white' : 'bg-secondary text-white'
       const adminLabel = isAdmin ? 'Admin' : 'Usuário'
       const isActive = employee.active !== undefined ? employee.active : true
-      const activeBadgeClass = isActive ? 'bg-success-subtle text-success-emphasis' : 'bg-danger-subtle text-danger-emphasis'
+      const activeBadgeClass = isActive ? 'bg-success text-white' : 'bg-danger text-white'
       const activeLabel = isActive ? 'Ativo' : 'Inativo'
       return `
         <tr data-employee-id="${employee.id}">
@@ -167,8 +170,12 @@ function renderEmployeeTable() {
                 data-action="edit"
                 data-entity="employee"
                 data-employee-id="${employee.id}"
+                title="Editar funcionário"
               >
-                Editar
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                  <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+                </svg>
               </button>
               <button
                 type="button"
@@ -176,8 +183,17 @@ function renderEmployeeTable() {
                 data-action="delete"
                 data-entity="employee"
                 data-employee-id="${employee.id}"
+                title="${isActive ? 'Inativar funcionário' : 'Reativar funcionário'}"
               >
-                ${isActive ? 'Inativar' : 'Reativar'}
+                ${isActive ? `
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"/>
+                  </svg>
+                ` : `
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.061L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                  </svg>
+                `}
               </button>
             </div>
           </td>
@@ -185,6 +201,147 @@ function renderEmployeeTable() {
       `
     })
     .join('')
+}
+
+/**
+ * Renderiza os cards de resumo dos funcionários
+ */
+function renderEmployeeSummary() {
+  const summaryContainer = document.getElementById('employeeSummaryCards')
+  if (!summaryContainer) {
+    return
+  }
+
+  const totalEmployees = filteredEmployees.length
+  const activeEmployees = filteredEmployees.filter(emp => emp.active !== undefined ? emp.active : true).length
+  const inactiveEmployees = totalEmployees - activeEmployees
+  const adminEmployees = filteredEmployees.filter(emp => emp.admin === true).length
+  const totalPayroll = filteredEmployees.reduce((sum, emp) => sum + (Number(emp.salary) || 0), 0)
+
+  const summaryItems = [
+    {
+      id: 'total',
+      label: 'Total de funcionários',
+      value: `${totalEmployees}`,
+      helper: `${activeEmployees} ativos, ${inactiveEmployees} inativos`
+    },
+    {
+      id: 'active',
+      label: 'Funcionários ativos',
+      value: `${activeEmployees}`,
+      helper: `${totalEmployees > 0 ? ((activeEmployees / totalEmployees) * 100).toFixed(1) : 0}% do total`
+    },
+    {
+      id: 'admin',
+      label: 'Administradores',
+      value: `${adminEmployees}`,
+      helper: `${totalEmployees > 0 ? ((adminEmployees / totalEmployees) * 100).toFixed(1) : 0}% do total`
+    },
+    {
+      id: 'payroll',
+      label: 'Folha de pagamento',
+      value: currencyFormatter.format(totalPayroll),
+      helper: 'Somatório dos salários'
+    }
+  ]
+
+  summaryContainer.innerHTML = summaryItems
+    .map(
+      (item) => `
+        <article class="col-12 col-md-6 col-xl-3">
+          <div class="summary-card card" data-type="${item.id}">
+            <div class="d-flex align-items-center gap-3">
+              <span class="summary-icon">${getEmployeeSummaryIcon(item.id)}</span>
+              <div>
+                <p class="text-muted mb-1">${item.label}</p>
+                <h3>${item.value}</h3>
+                <p class="small">${item.helper}</p>
+              </div>
+            </div>
+          </div>
+        </article>
+      `
+    )
+    .join('')
+}
+
+/**
+ * Retorna o ícone do resumo de funcionários baseado no tipo
+ * @param {string} type - Tipo do resumo
+ * @returns {string}
+ */
+function getEmployeeSummaryIcon(type) {
+  const iconMap = {
+    total: '👥',
+    active: '✅',
+    admin: '👑',
+    payroll: '💰'
+  }
+  return iconMap[type] ?? 'ℹ️'
+}
+
+function initTabBarAnimation() {
+  const tabButtons = document.querySelectorAll('.dashboard-tabs .nav-link')
+  const tabList = document.querySelector('.dashboard-tabs')
+  
+  if (!tabList || tabButtons.length === 0) {
+    return
+  }
+  
+  // Criar barra animada única
+  let animatedBar = document.querySelector('.tab-animated-bar')
+  if (!animatedBar) {
+    animatedBar = document.createElement('div')
+    animatedBar.className = 'tab-animated-bar'
+    tabList.appendChild(animatedBar)
+  }
+  
+  // Função para atualizar posição da barra
+  const updateBarPosition = (activeButton) => {
+    if (!activeButton || !animatedBar) return
+    
+    const tabListRect = tabList.getBoundingClientRect()
+    const buttonRect = activeButton.getBoundingClientRect()
+    const buttonWidth = buttonRect.width
+    const buttonLeft = buttonRect.left - tabListRect.left
+    
+    const barWidth = buttonWidth * 0.8
+    const barLeft = buttonLeft + (buttonWidth - barWidth) / 2
+    
+    animatedBar.style.width = `${barWidth}px`
+    animatedBar.style.left = `${barLeft}px`
+    animatedBar.style.opacity = '1'
+  }
+  
+  // Atualizar posição inicial
+  const activeButton = document.querySelector('.dashboard-tabs .nav-link.active')
+  if (activeButton) {
+    updateBarPosition(activeButton)
+  }
+  
+  // Observar mudanças nas tabs
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      setTimeout(() => {
+        const newActiveButton = document.querySelector('.dashboard-tabs .nav-link.active')
+        if (newActiveButton) {
+          updateBarPosition(newActiveButton)
+        }
+      }, 10)
+    })
+  })
+  
+  // Observar mudanças de tamanho da janela
+  let resizeTimeout
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout)
+    resizeTimeout = setTimeout(() => {
+      const activeButton = document.querySelector('.dashboard-tabs .nav-link.active')
+      if (activeButton) {
+        updateBarPosition(activeButton)
+      }
+    }, 100)
+  })
 }
 
 function bindEvents() {
@@ -196,6 +353,7 @@ function bindEvents() {
   const employeeSearchInput = document.getElementById('searchEmployee')
   const addEmployeeButton = document.getElementById('addEmployeeBtn')
   const employeeTable = document.getElementById('employeeTableBody')
+  const logoutButton = document.getElementById('logoutBtn')
 
   searchInput?.addEventListener('input', (event) => {
     const value = event.target.value
@@ -252,6 +410,7 @@ function bindEvents() {
     const value = event.target.value
     filteredEmployees = filterEmployeesBySearch(employees, value)
     renderEmployeeTable()
+    renderEmployeeSummary()
   })
 
   addEmployeeButton?.addEventListener('click', () => {
@@ -474,6 +633,19 @@ function bindEvents() {
       }
     }
   })
+
+  logoutButton?.addEventListener('click', (event) => {
+    event.preventDefault()
+    handleLogout()
+  })
+}
+
+/**
+ * Realiza o logout do usuário
+ */
+function handleLogout() {
+  // Redirecionar para a página de login
+  window.location.href = 'index.html'
 }
 
 function handleEditProduct(product) {

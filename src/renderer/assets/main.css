@@ -6,7 +6,8 @@ body {
 }
 
 .dashboard .navbar {
-  background: linear-gradient(130deg, #304ffe, #536dfe);
+  background: linear-gradient(135deg, #0a3a2b, #0f9d58);
+  box-shadow: 0 2px 8px rgba(10, 58, 43, 0.3);
 }
 
 .dashboard .user-avatar {
@@ -18,6 +19,57 @@ body {
   font-size: 0.9rem;
   background: rgba(255, 255, 255, 0.15);
   color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+.dashboard .user-avatar:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+/* Estilos do dropdown do usuário */
+.dashboard .navbar #userDropdown {
+  cursor: pointer;
+}
+
+.dashboard .navbar #userDropdown:focus {
+  box-shadow: none;
+  outline: 2px solid rgba(255, 255, 255, 0.3);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+.dashboard .navbar .dropdown-menu {
+  margin-top: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  min-width: 220px;
+}
+
+.dashboard .navbar .dropdown-header {
+  padding: 0.75rem 1rem;
+  background: rgba(15, 158, 105, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dashboard .navbar .dropdown-item {
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.dashboard .navbar .dropdown-item:hover {
+  background: rgba(15, 158, 105, 0.1);
+  color: #0f9d58;
+}
+
+.dashboard .navbar .dropdown-item svg {
+  margin-right: 0.5rem;
+  flex-shrink: 0;
 }
 
 .dashboard main {
@@ -31,21 +83,126 @@ body {
 .dashboard-tabs .nav-link {
   border-radius: 999px;
   padding: 0.55rem 1.35rem;
-  background: transparent;
-  color: #425466;
+  background: transparent !important;
+  color: #1f2933 !important;
   font-weight: 600;
+  border: 1px solid transparent !important;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-tabs .nav-link > * {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-tabs .nav-link::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(22, 163, 74, 0.2), rgba(21, 128, 61, 0.2));
+  transition: left 0.3s ease;
+  z-index: 0;
 }
 
 .dashboard-tabs .nav-link:hover {
-  background: rgba(83, 109, 254, 0.08);
-  color: #304ffe;
+  background: rgba(22, 163, 74, 0.15);
+  color: #15803d;
+  border-color: rgba(22, 163, 74, 0.4);
+  transform: translateY(-2px);
+}
+
+.dashboard-tabs .nav-link:hover::before {
+  left: 0;
 }
 
 .dashboard-tabs .nav-link.active {
-  background: #ffffff;
-  color: #304ffe;
-  border: 1px solid rgba(83, 109, 254, 0.3);
-  box-shadow: 0 4px 12px rgba(83, 109, 254, 0.12);
+  background: transparent !important;
+  color: #15803d !important;
+  border: 1px solid transparent !important;
+  box-shadow: none !important;
+  transform: none;
+  position: relative;
+  z-index: 1;
+  font-weight: 700;
+}
+
+.dashboard-tabs {
+  position: relative;
+}
+
+.tab-animated-bar {
+  position: absolute;
+  bottom: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #16a34a, #15803d);
+  border-radius: 2px 2px 0 0;
+  transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1), width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  z-index: 10;
+}
+
+.dashboard-tabs .nav-link::after {
+  display: none;
+}
+
+.dashboard-tabs .nav-link:not(.active) {
+  background: transparent !important;
+  color: #1f2933 !important;
+  border-color: transparent !important;
+}
+
+.dashboard-tabs .nav-link.active::before {
+  display: none;
+}
+
+.dashboard-tabs .nav-link:focus,
+.dashboard-tabs .nav-link:active,
+.dashboard-tabs .nav-link:focus-visible {
+  outline: none !important;
+}
+
+.dashboard-tabs .nav-link:focus:not(.active),
+.dashboard-tabs .nav-link:active:not(.active),
+.dashboard-tabs .nav-link:focus-visible:not(.active) {
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.25) !important;
+  color: #15803d !important;
+  background: rgba(22, 163, 74, 0.1) !important;
+  border-color: rgba(22, 163, 74, 0.3) !important;
+}
+
+.dashboard-tabs .nav-link:focus:not(.active),
+.dashboard-tabs .nav-link:active:not(.active) {
+  background: rgba(22, 163, 74, 0.1) !important;
+  border-color: rgba(22, 163, 74, 0.3) !important;
+  color: #15803d !important;
+}
+
+.dashboard-tabs .nav-link.active:focus,
+.dashboard-tabs .nav-link.active:active {
+  background: transparent !important;
+  color: #15803d !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+.tab-pane {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .tab-pane .card + .card {
@@ -93,6 +250,22 @@ body {
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.01em;
+  padding: 0.4rem 0.75rem;
+}
+
+.dashboard .badge.bg-success {
+  background-color: #0f9d58 !important;
+  color: #ffffff !important;
+}
+
+.dashboard .badge.bg-danger {
+  background-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+.dashboard .badge.bg-secondary {
+  background-color: #6b7280 !important;
+  color: #ffffff !important;
 }
 
 .table .text-truncate {
@@ -136,6 +309,22 @@ body {
   background: linear-gradient(135deg, #ff6a88, #ff8a65);
 }
 
+.summary-card[data-type='total'] .summary-icon {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+}
+
+.summary-card[data-type='active'] .summary-icon {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.summary-card[data-type='admin'] .summary-icon {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.summary-card[data-type='payroll'] .summary-icon {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
 .summary-card h3 {
   font-size: 1.75rem;
   margin: 0.75rem 0 0.25rem;
@@ -167,14 +356,161 @@ body {
   white-space: nowrap;
 }
 
+/* Botões com cores mais fortes */
+.dashboard .btn-primary {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  border: none;
+  color: #ffffff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(21, 128, 61, 0.4);
+  transition: all 0.2s ease;
+}
+
+.dashboard .btn-primary:hover {
+  background: linear-gradient(135deg, #15803d, #166534);
+  box-shadow: 0 4px 12px rgba(21, 128, 61, 0.5);
+  transform: translateY(-1px);
+  color: #ffffff;
+}
+
+.dashboard .btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(21, 128, 61, 0.4);
+}
+
 .action-buttons {
   display: inline-flex;
   gap: 0.4rem;
 }
 
 .action-buttons .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0.35rem 0.6rem;
   font-size: 0.78rem;
+  min-width: 36px;
+}
+
+.action-buttons .btn svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+/* Botões dos modais - apenas o de confirmar (primary) fica verde */
+#app .modal .btn-primary,
+#app .modal .btn.btn-primary,
+.dashboard .modal .btn-primary,
+.dashboard .modal .btn.btn-primary,
+.dashboard .modal-footer .btn-primary,
+.dashboard .modal-footer .btn.btn-primary,
+.dashboard .modal-content .btn-primary,
+.dashboard .modal-content .btn.btn-primary,
+.modal .btn-primary,
+.modal .btn.btn-primary,
+button.btn-primary[type="submit"],
+button.btn.btn-primary[type="submit"],
+#categorySubmitButton,
+#productSubmitButton,
+#employeeSubmitButton {
+  background: linear-gradient(135deg, #16a34a, #15803d) !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(15, 158, 105, 0.4) !important;
+  transition: all 0.2s ease !important;
+}
+
+#app .modal .btn-primary:hover,
+#app .modal .btn.btn-primary:hover,
+.dashboard .modal .btn-primary:hover,
+.dashboard .modal .btn.btn-primary:hover,
+.dashboard .modal-footer .btn-primary:hover,
+.dashboard .modal-footer .btn.btn-primary:hover,
+.dashboard .modal-content .btn-primary:hover,
+.dashboard .modal-content .btn.btn-primary:hover,
+.modal .btn-primary:hover,
+.modal .btn.btn-primary:hover,
+button.btn-primary[type="submit"]:hover,
+button.btn.btn-primary[type="submit"]:hover,
+#categorySubmitButton:hover,
+#productSubmitButton:hover,
+#employeeSubmitButton:hover {
+  background: linear-gradient(135deg, #15803d, #166534) !important;
+  box-shadow: 0 4px 12px rgba(15, 158, 105, 0.5) !important;
+  transform: translateY(-1px) !important;
+  color: #ffffff !important;
+}
+
+#app .modal .btn-primary:active,
+#app .modal .btn.btn-primary:active,
+.dashboard .modal .btn-primary:active,
+.dashboard .modal .btn.btn-primary:active,
+.dashboard .modal-footer .btn-primary:active,
+.dashboard .modal-footer .btn.btn-primary:active,
+.dashboard .modal-content .btn-primary:active,
+.dashboard .modal-content .btn.btn-primary:active,
+.modal .btn-primary:active,
+.modal .btn.btn-primary:active,
+button.btn-primary[type="submit"]:active,
+button.btn.btn-primary[type="submit"]:active,
+#categorySubmitButton:active,
+#productSubmitButton:active,
+#employeeSubmitButton:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(15, 158, 105, 0.4) !important;
+}
+
+/* Botões de cancelar dos modais em vermelho */
+#app .modal .btn-secondary,
+#app .modal .btn.btn-secondary,
+.dashboard .modal .btn-secondary,
+.dashboard .modal .btn.btn-secondary,
+.dashboard .modal-footer .btn-secondary,
+.dashboard .modal-footer .btn.btn-secondary,
+.dashboard .modal-content .btn-secondary,
+.dashboard .modal-content .btn.btn-secondary,
+.modal .btn-secondary,
+.modal .btn.btn-secondary,
+button.btn-secondary[data-bs-dismiss="modal"] {
+  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4) !important;
+  transition: all 0.2s ease !important;
+}
+
+#app .modal .btn-secondary:hover,
+#app .modal .btn.btn-secondary:hover,
+.dashboard .modal .btn-secondary:hover,
+.dashboard .modal .btn.btn-secondary:hover,
+.dashboard .modal-footer .btn-secondary:hover,
+.dashboard .modal-footer .btn.btn-secondary:hover,
+.dashboard .modal-content .btn-secondary:hover,
+.dashboard .modal-content .btn.btn-secondary:hover,
+.modal .btn-secondary:hover,
+.modal .btn.btn-secondary:hover,
+button.btn-secondary[data-bs-dismiss="modal"]:hover {
+  background: linear-gradient(135deg, #b91c1c, #991b1b) !important;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.5) !important;
+  transform: translateY(-1px) !important;
+  color: #ffffff !important;
+}
+
+#app .modal .btn-secondary:active,
+#app .modal .btn.btn-secondary:active,
+.dashboard .modal .btn-secondary:active,
+.dashboard .modal .btn.btn-secondary:active,
+.dashboard .modal-footer .btn-secondary:active,
+.dashboard .modal-footer .btn.btn-secondary:active,
+.dashboard .modal-content .btn-secondary:active,
+.dashboard .modal-content .btn.btn-secondary:active,
+.modal .btn-secondary:active,
+.modal .btn.btn-secondary:active,
+button.btn-secondary[data-bs-dismiss="modal"]:active {
+  transform: translateY(0) !important;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.4) !important;
 }
 
 .login-body {
